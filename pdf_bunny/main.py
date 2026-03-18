@@ -288,7 +288,6 @@ class Window(QMainWindow, Ui_window):
         self.statusbar.setMaximumHeight(16)
         self.statusbar.hide()
         # Impoort settings
-        desktop = QApplication.desktop()
         self.settings = QSettings("pdf-bunny", "main", self)
         # QSettings.value() function returns None if previously saved value
         # was empty list. In that case adding "or []" avoids crash.
@@ -299,7 +298,6 @@ class Window(QMainWindow, Ui_window):
             filename = self.settings.value("Filename")
             self.file_history[filename] = self.settings.value("PageNo")
         self.settings.endArray()
-        self.available_area = [desktop.availableGeometry().width(), desktop.availableGeometry().height()]
         self.zoomLevelCombo.setCurrentIndex(int(self.settings.value("ZoomLevel", 0)))
         # Connect Signals
         self.scrollArea.verticalScrollBar().valueChanged.connect(self.onPageScroll)
@@ -918,9 +916,6 @@ class Window(QMainWindow, Ui_window):
             self.calculatePageDpis()
             self.resizePages()
             self.jumpToPage(self.curr_page_no)
-        if not self.isMaximized():
-            self.settings.setValue("WindowWidth", self.width())
-            self.settings.setValue("WindowHeight", self.height())
 
     def updateFileHistory(self):
         if not App.filename:
@@ -943,6 +938,12 @@ class Window(QMainWindow, Ui_window):
     def closeEvent(self, ev):
         """ Save all settings on window close """
         self.settings.setValue("WindowMaximized", self.isMaximized())
+        if not self.isMaximized():
+            available_size = QApplication.desktop().availableGeometry()
+            max_w = available_size.width() - (self.frameGeometry().width()-self.width())
+            max_h = available_size.height() - (self.frameGeometry().height()-self.height())
+            self.settings.setValue("WindowWidth", min(self.width(),max_w))
+            self.settings.setValue("WindowHeight", min(self.height(),max_h))
         self.updateFileHistory()
         self.settings.setValue("ZoomLevel", self.zoomLevelCombo.currentIndex())
         self.settings.beginWriteArray("FileHistory")
